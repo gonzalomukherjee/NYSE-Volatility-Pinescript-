@@ -7,12 +7,12 @@ indicator("GoldMine Gonzalo", overlay = true, max_lines_count = 500)
 
 enSess1 = input.bool(true, title="", inline = "1", group = "Session Setting")
 session1  = input.session("0900-0935", title="Session A", inline = "1", group = "Session Setting")
-timeZone1 = input.string("UTC-5",   title="Time Zone",      inline = "1", group = "Session Setting")
+timeZone1 = input.string("UTC-4",   title="Time Zone",      inline = "1", group = "Session Setting")
 
 
 enSess2 = input.bool(true, title="", inline = "2", group = "Session Setting")
 session2  = input.session("0900-1100", title="Session B", inline = "2", group = "Session Setting")
-timeZone2 = input.string("UTC-5",      title="Time Zone",    inline = "2", group = "Session Setting")
+timeZone2 = input.string("UTC-4",      title="Time Zone",    inline = "2", group = "Session Setting")
 
 // Remove Line While Calculation With Time Filter
 
@@ -22,7 +22,7 @@ pipSize2 = input.float(25, title="Total PIP For 2 Candle", minval = 0, inline = 
 time1 = time(timeframe.period, session1, timeZone1) and enSess1
 time2 = time(timeframe.period, session2, timeZone2) and enSess2
 
-openTime = time(timeframe.period, "0000-0000", "UTC-5")
+openTime = time(timeframe.period, "0000-0000", timeZone1)
 
 // bgcolor(time1 ? color.white : na)
 
@@ -73,14 +73,14 @@ bearCanPip = close < close[1] and close[1] < close[2] ? math.abs(((high[1]-low[1
 pipCondBull = candPip >= pipSize or bullCanPip >= pipSize2
 pipCondBear = candPip >= pipSize or bearCanPip >= pipSize2
 
-firstRd = dir ==  1 and close < close[1] and pipCondBear and time(timeframe.period, "0935-1100", "UTC-5")
+firstRd = dir ==  1 and close < close[1] and pipCondBear and time(timeframe.period, "0935-1100", timeZone1)
 secndGr = dir ==  1 and close > close[1] and firstRdCnt >= 1
 thirdRd = dir ==  1 and close < close[1] and secndGrCnt >= 1 
 forthGr = dir ==  1 and close > close[1] and thirdRdCnt >= 1
 
 
 
-firstGr = dir == -1 and close > close[1] and pipCondBull and time(timeframe.period, "0935-1100", "UTC-5")
+firstGr = dir == -1 and close > close[1] and pipCondBull and time(timeframe.period, "0935-1100", timeZone1)
 secndRd = dir == -1 and close < close[1] and firstGrCnt >= 1
 thirdGr = dir == -1 and close > close[1] and secndRdCnt >= 1
 forthRd = dir == -1 and close < close[1] and thirdGrCnt >= 1
@@ -267,7 +267,7 @@ if inSession
 
 var dayOpen = float(na)
 
-dayChange = time(timeframe.period, "0000-0001", "UTC-5")
+dayChange = time(timeframe.period, "0000-0001", timeZone1)
 
 if dayChange
     dayOpen := na
