@@ -2,7 +2,7 @@
 // This script is property of Gonzalo M. & Arjun F. & 
 //Jan 5, 2023
 
-//@version=5
+//@version=3
 indicator("GoldMine Gonzalo", overlay = true, max_lines_count = 500)
 
 enSess1 = input.bool(true, title="", inline = "1", group = "Session Setting")
