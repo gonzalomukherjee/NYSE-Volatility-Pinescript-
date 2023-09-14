@@ -1,0 +1,304 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Gonzalo Mukherjee
+
+//@version=5
+indicator("NYSE930_MULTI", overlay = true, max_lines_count = 500)
+
+enSess1 = input.bool(true, title="", inline = "1", group = "Session Setting")
+session1  = input.session("0900-0935", title="Session A", inline = "1", group = "Session Setting")
+timeZone1 = input.string("UTC-4",   title="Time Zone",      inline = "1", group = "Session Setting")
+
+
+enSess2 = input.bool(true, title="", inline = "2", group = "Session Setting")
+session2  = input.session("0900-1100", title="Session B", inline = "2", group = "Session Setting")
+timeZone2 = input.string("UTC-4",      title="Time Zone",    inline = "2", group = "Session Setting")
+
+// Remove Line While Calculation With Time Filter
+
+pipSize  = input.float(2.23, title="Total Candle PIP", minval = 0, inline = "1", group = "Candle Setting")
+pipSize2 = input.float(2.5, title="Total PIP For 2 Candle", minval = 0, inline = "1", group = "Candle Setting")
+
+time1 = time(timeframe.period, session1, timeZone1) and enSess1
+time2 = time(timeframe.period, session2, timeZone2) and enSess2
+
+openTime = time(timeframe.period, "0000-0000", timeZone1)
+
+
+
+
+getXPip() =>
+    minPip = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
+    xVal = int(na)
+    if minPip == 1
+        xVal := 1
+    if minPip == 0.1
+        xVal := 10
+    if minPip == 0.01
+        xVal := 100
+    if minPip == 0.001
+        xVal := 1000
+    if minPip == 0.0001
+        xVal := 10000
+    if minPip == 0.00001
+        xVal := 100000
+    xVal
+
+
+
+
+// bgcolor(time1 ? color.white : na)
+
+
+var int grCan = 0
+var int rdCan = 0
+
+if time1 and close > close[1]
+    grCan+=1
+
+if time1 and close < close[1]
+    rdCan+=1
+
+
+t_Can = rdCan + grCan
+
+buyCond = grCan >= 4 and t_Can == 7
+selCond = rdCan >= 4 and t_Can == 7
+
+var int dir = na
+
+if buyCond
+    dir :=  1
+if selCond
+    dir := -1
+
+if not time2
+    dir := na
+
+var int firstGrCnt = 0
+var int firstRdCnt = 0
+
+var int secndGrCnt = 0
+var int secndRdCnt = 0
+
+var int thirdGrCnt = 0
+var int thirdRdCnt = 0
+
+var int forthGrCnt = 0
+var int forthRdCnt = 0
+
+
+candPip = math.abs(high-low) * getXPip()
+
+bullCanPip = close > close[1] and close[1] > close[2] ? math.abs(((high[1]-low[1]) + (high-low))) * 10 : candPip
+bearCanPip = close < close[1] and close[1] < close[2] ? math.abs(((high[1]-low[1]) + (high-low))) * 10 : candPip
+
+pipCondBull = candPip >= pipSize or bullCanPip >= pipSize2
+pipCondBear = candPip >= pipSize or bearCanPip >= pipSize2
+
+firstRd = dir ==  1 and close < close[1] and pipCondBear and time(timeframe.period, "0935-1100", timeZone1)
+secndGr = dir ==  1 and close > close[1] and firstRdCnt >= 1
+thirdRd = dir ==  1 and close < close[1] and secndGrCnt >= 1 
+forthGr = dir ==  1 and close > close[1] and thirdRdCnt >= 1
+
+
+
+firstGr = dir == -1 and close > close[1] and pipCondBull and time(timeframe.period, "0935-1100", timeZone1)
+secndRd = dir == -1 and close < close[1] and firstGrCnt >= 1
+thirdGr = dir == -1 and close > close[1] and secndRdCnt >= 1
+forthRd = dir == -1 and close < close[1] and thirdGrCnt >= 1
+
+if firstRd
+    firstRdCnt += 1
+if firstGr
+    firstGrCnt += 1
+
+if secndRd
+    secndRdCnt += 1
+if secndGr
+    secndGrCnt += 1
+
+if thirdRd
+    thirdRdCnt += 1
+if thirdGr
+    thirdGrCnt += 1
+
+if forthRd
+    forthRdCnt += 1
+if forthGr
+    forthGrCnt += 1
+
+
+if not time2
+    rdCan := 0
+    grCan := 0
+    firstGrCnt := 0
+    firstRdCnt := 0
+    secndGrCnt := 0
+    secndRdCnt := 0
+    thirdGrCnt := 0
+    thirdRdCnt := 0
+    forthGrCnt := 0
+    forthRdCnt := 0
+
+canIdEn = input.bool(false, "Plot Candle Identify")
+
+plotshape(firstRd and firstRdCnt == 1 and canIdEn, "First Red",    style=shape.triangledown, location = location.abovebar, color=color.red  )
+plotshape(secndGr and secndGrCnt == 1 and canIdEn, "Second Green", style=shape.triangleup,   location = location.belowbar, color=color.lime )
+plotshape(thirdRd and thirdRdCnt == 1 and canIdEn, "Third Red",    style=shape.triangledown, location = location.abovebar, color=color.red  )
+plotshape(forthGr and forthGrCnt == 1 and canIdEn, "Forth Green",  style=shape.triangleup,   location = location.belowbar, color=color.lime )
+
+plotshape(firstGr and firstGrCnt == 1 and canIdEn, "First Green",  style=shape.triangledown, location = location.abovebar, color=color.lime )
+plotshape(secndRd and secndRdCnt == 1 and canIdEn, "Second Red",   style=shape.triangleup,   location = location.belowbar, color=color.red  )
+plotshape(thirdGr and thirdGrCnt == 1 and canIdEn, "Third Green",  style=shape.triangledown, location = location.abovebar, color=color.lime )
+plotshape(forthRd and forthRdCnt == 1 and canIdEn, "Forth Red",    style=shape.triangleup,   location = location.belowbar, color=color.red  )
+
+var float upHI = na
+var float upLO = na
+var float dwHI = na
+var float dwLO = na
+
+var int upHiIdx = na
+var int upLoIdx = na
+var int dwHiIdx = na
+var int dwLoIdx = na
+
+
+
+lineLen = input.int(5, "Line Length", 0, group = "Line Sttings")
+
+rd1st = input.color(color.lime, "Bull Color - 1st Line", inline = '1',  group = "Line Sttings")
+rd2nd = input.color(color.red,  "2nd Line", inline = '1',  group = "Line Sttings")
+rd3rd = input.color(color.lime, "3rd Line", inline = '1',  group = "Line Sttings")
+rd4th = input.color(color.red,  "4th Line", inline = '1',  group = "Line Sttings")
+
+
+gr1st = input.color(color.red,  "Bear Color - 1st Line", inline = '2',  group = "Line Sttings")
+gr2nd = input.color(color.lime, "2nd Line", inline = '2',  group = "Line Sttings")
+gr3rd = input.color(color.red,  "3rd Line", inline = '2',  group = "Line Sttings")
+gr4th = input.color(color.lime, "4th Line", inline = '2',  group = "Line Sttings")
+
+
+
+line stRdLine = na
+line stGrLine = na
+
+if firstRd and firstRdCnt == 1
+    stRdLine := line.new(bar_index, high, bar_index+lineLen, high, color=rd1st)
+
+if not na(stRdLine[1]) and close < close[1]
+    stRdLine := line.new(bar_index, high, bar_index+lineLen, high, color=rd1st)
+    line.delete(stRdLine[1])
+
+if secndGr and secndGrCnt == 1
+    line.new(bar_index,  low, bar_index+lineLen,  low, color=rd2nd)
+
+if thirdRd and thirdRdCnt == 1
+    line.new(bar_index,  high, bar_index+lineLen,  high, color=rd3rd)
+
+if forthGr and forthGrCnt == 1
+    line.new(bar_index,  low, bar_index+lineLen,  low, color=rd4th)
+
+
+if firstGr and firstGrCnt == 1
+    stGrLine := line.new(bar_index, low, bar_index+lineLen, low, color=gr1st)
+
+if not na(stGrLine[1]) and close > close[1]
+    stGrLine := line.new(bar_index, low, bar_index+lineLen, low, color=gr1st)
+    line.delete(stGrLine[1])
+
+if secndRd and secndRdCnt == 1
+    line.new(bar_index,  high, bar_index+lineLen,  high, color=gr2nd)
+    
+if thirdGr and thirdGrCnt == 1
+    line.new(bar_index,  low, bar_index+lineLen,  low, color=rd3rd)
+
+if forthRd and forthRdCnt == 1
+    line.new(bar_index,  high, bar_index+lineLen,  high, color=gr4th)
+
+
+plotshape(buyCond and not buyCond[1], "Buy  Bias", style=shape.circle, location = location.belowbar, color=color.lime)
+plotshape(selCond and not selCond[1], "Sell Bias", style=shape.circle, location = location.abovebar, color=color.red )
+
+
+// InSession() returns 'true' when the current bar happens inside
+// the specified session, corrected for the given time zone (optional).
+// Returns 'false' when the bar doesn't happen in that time period,
+// or when the chart's time frame is 1 day or higher. 
+InSession(sessionTime, sessionTimeZone=syminfo.timezone) =>
+    not na(time(timeframe.period, sessionTime, sessionTimeZone))
+
+// STEP 1:
+// Define custom session trading times with inputs
+// sessionTime = input.session("0900-1100", title="Session time")
+// sessionZone = input.string("UTC-5", title="Session time zone")
+
+// Other inputs for the boxes' visual appearance
+boxBorderSize   = input.int(0, title="Box border size", minval=0, inline = "1", group = "Session Box Setting")
+downBorderColor = input.color(color.red, title="Down border", inline = "1", group = "Session Box Setting")
+upBorderColor   = input.color(color.green, title="Up border", inline = "1", group = "Session Box Setting")
+downBoxColor    = input.color(color.new(color.red, 85), title="Down box", inline = "1", group = "Session Box Setting")
+upBoxColor      = input.color(color.new(color.green, 85), title="Up box", inline = "1", group = "Session Box Setting")
+
+
+
+// Create variables
+var sessionHighPrice = 0.0
+var sessionLowPrice  = 0.0
+var sessionOpenPrice = 0.0
+var box sessionBox = na
+
+// STEP 2:
+// See if the session is currently active and just started
+inSession    = InSession(session2, timeZone2) and timeframe.isintraday
+sessionStart = inSession and not inSession[1]
+
+// STEP 3:
+// When a new session starts, set the session high and low to the data
+// of the bar in the session.
+if sessionStart
+    sessionHighPrice := high
+    sessionLowPrice  := low
+    sessionOpenPrice := open
+// Else, during the session, track the highest high and lowest low
+else if inSession
+    sessionHighPrice := math.max(sessionHighPrice, high)
+    sessionLowPrice  := math.min(sessionLowPrice, low)
+
+// STEP 4:
+// When a session begins, make a new box for that session
+if sessionStart
+    sessionBox := box.new(left=bar_index, top=na, right=na, bottom=na,
+         border_width=boxBorderSize)
+
+// STEP 5:
+// During the session, update that session's existing box
+if inSession
+    box.set_top(sessionBox, sessionHighPrice)
+    box.set_bottom(sessionBox, sessionLowPrice)
+
+    box.set_right(sessionBox, bar_index + 1)
+
+    // See if bar closed higher than session open. When it did, make
+    // box green (and use red otherwise).
+    if close > sessionOpenPrice
+        box.set_bgcolor(sessionBox, upBoxColor)
+        box.set_border_color(sessionBox, upBorderColor)
+    else
+        box.set_bgcolor(sessionBox, downBoxColor)
+        box.set_border_color(sessionBox, downBorderColor)
+
+var dayOpen = float(na)
+
+dayChange = time(timeframe.period, "0000-0001", timeZone1)
+
+if dayChange
+    dayOpen := na
+if dayChange[1]
+    dayOpen := open[1]
+
+
+plot(dayOpen, title = "Open Price Line", style = plot.style_linebr, offset = -1)
+
+
+if not na(dayOpen) and na(dayOpen[1])
+    label.new(bar_index-3, dayOpen, text="Open", style=label.style_text_outline, size = size.tiny, color=color.black, textcolor = color.white)
